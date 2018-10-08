@@ -1,0 +1,131 @@
+循环缓冲区，当缓冲区满时，数据将抛弃，不覆盖
+
+#define  BUF_SIZE  1024
+int fifo_arr[BUF_SIZE] = {}; 
+unsigned int readops = 0;
+unsigned int writeops = 0;
+unsigned int empty = 0;
+unsigned int full = 0;
+
+/*
+* 初始化函数，读写下标readops，writeops指向
+* empty = 1，fifo为空；full = 0，fifo不满
+*/
+int init_fifo(void)
+{
+   memset(fifo_arr,0, sizeof(fifo_arr));
+   readops = 0;
+   writeops = 0;
+   empty = 1;
+   full = 0;
+   return 0;
+}
+
+int read_fifo(int* arr,int len)
+{
+    int can_readlen = 0; //可以读的长度
+    int readlen = 0;
+    int nextreadops = 0;
+    int i = 0;
+    readlen = len;
+
+    if(1 == empty) {//为空则返回
+      return  -1;
+    }
+
+    if(readlen == 0){
+       return 0;
+    }
+
+    if(writeops > readops) {
+        can_readlen = writeops - readops;
+    } else if(writeops == readops) {
+       can_readlen = BUF_SIZE;
+    } else {
+       can_readlen = BUF_SIZE - (readops - writeops);
+    }
+
+    if(readlen > can_readlen) {
+       readlen = can_readlen;
+    }
+
+    nextreadops = (readops + readlen)%BUF_SIZE;
+
+    if(nextreadops == (readops + readlen)){
+       for(i = 0; i < readlen ; i++){
+          arr[i]=fifo_arr[readops + i];
+       }
+    } else {
+       for(i = 0; i < readlen - nextreadops ; i++){
+         arr[i]=fifo_arr[readops + i];
+       }
+       for(i = 0; i < nextreadops ; i++) {
+        arr[readlen - nextreadops + i]=fifo_arr[i];
+       }
+    }
+
+    readops = nextreadops;
+
+    if(writeops = readops) {
+       empty = 1;// empty = 1，fifo为空；
+    }
+
+    full = 0;  //full = 0，fifo不满
+    return readlen;
+}
+
+int write_fifo(int* arr,int len)
+{
+
+   int can_writelen = 0; //可以写的长度
+   int writelen = 0;
+   int nextwriteops = 0;
+   int i = 0;
+
+   writelen = len;
+
+   if(1 == full) {   //为满则返回
+      return  -1;
+   }
+
+   if(writelen == 0) {
+      return 0;
+   }
+
+   if(writeops > readops) {
+      can_writelen = BUF_SIZE - (writeops - readops);
+   } else if (writeops == readops) {
+      can_writelen = BUF_SIZE;
+   } else {
+      can_writelen = readops - writeops;
+   }
+
+   if(writelen > can_writelen) {
+      writelen = can_writelen;
+   }
+
+   nextwriteops = (writeops + writelen)%BUF_SIZE;
+
+   if(nextwriteops == (readops + writelen)) {
+      for(i = 0; i < writelen ; i++) {
+         fifo_arr[readops + i] = arr[i];
+      }
+   } else {
+      for(i = 0; i < writelen -nextwriteops ; i++) {
+         fifo_arr[writeops + i] = arr[i];
+      }
+      for(i = 0; i <nextwriteops ; i++) {
+         fifo_arr[i] = arr[writelen - nextwriteops + i];
+      }
+   }
+
+   writeops = nextwriteops;
+
+   if(writeops == readops) {
+      full = 1; //full = 1，fifo满
+   }
+
+   empty = 0;//empty = 0，fifo不为空；
+   return writelen;
+
+}
